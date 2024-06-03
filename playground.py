@@ -7,31 +7,31 @@ Created on Sun May  5 01:55:22 2024
 
 from SPanalysis import SpectralAnalysis
 
-dataset_path=r"dataset\hyperspectral\combind.xlsx"
+dataset_path=r"dataset\Hyperspectral\Combind_H_canopy.xlsx"
 
 # PLSR
-analysis = SpectralAnalysis(dataset_path,'PLSR')
-analysis.preprocess_data()
-analysis.fit_model()
-results = analysis.evaluate_model()
-analysis.plot_results()
+# analysis = SpectralAnalysis(dataset_path,'PLSR')
+# analysis.preprocess_data()
+# analysis.fit_model()
+# results = analysis.evaluate_model()
+# analysis.plot_results()
 
-#SVM
-analysis4 = SpectralAnalysis(dataset_path,'SVR')
-analysis4.preprocess_data()
-analysis4.fit_model()
-analysis4.evaluate_model()
-analysis4.plot_results()
+# #SVM
+# analysis4 = SpectralAnalysis(dataset_path,'SVR')
+# analysis4.preprocess_data()
+# analysis4.fit_model()
+# analysis4.evaluate_model()
+# analysis4.plot_results()
 
 
-#RF
-analysis5 = SpectralAnalysis(dataset_path,'RF')
-analysis5.preprocess_data()
-analysis5.fit_model()
-analysis5.evaluate_model()
-analysis5.plot_results()
+# #RF
+# analysis5 = SpectralAnalysis(dataset_path,'RF')
+# analysis5.preprocess_data()
+# analysis5.fit_model()
+# analysis5.evaluate_model()
+# analysis5.plot_results()
 
-#XGboost
+# #XGboost
 XGboost= SpectralAnalysis(dataset_path,'XGBoost')
 XGboost.preprocess_data()
 XGboost.fit_model()

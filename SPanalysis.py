@@ -14,13 +14,13 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 from sklearn.svm import SVR
-#from xgboost import XGBRegressor
+from xgboost import XGBRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import make_scorer
 scorer = make_scorer(mean_squared_error, greater_is_better=False)
 from preprocessing import MSC, MeanCenter, Autoscale, trans2absr
-
+from scipy.signal import savgol_filter
 class SpectralAnalysis:
     '''
     Steps
@@ -48,7 +48,7 @@ class SpectralAnalysis:
         self.models = {}
         self.cv_results = {}
         # parameters
-        self.split_ratio = 0.30
+        self.split_ratio = 0.2
         self.random_state=42
         self.cv= 10
     
@@ -57,7 +57,7 @@ class SpectralAnalysis:
     def preprocess_data(self):
         
         self.ground_truths = self.data.loc[:,['RWC','Emm','gsw','PhiPS2','ETR']] #ground truth
-        self.reflectance = self.data.iloc[:, 9:] #X truth
+        self.reflectance = self.data.iloc[:, 59:] #X truth
         self.classes=self.data.loc[:,'Treatment']
  
         
@@ -88,6 +88,10 @@ class SpectralAnalysis:
         )
         
         Xp=trans2absr(X_train)
+        # Xp=savgol_filter(Xp, 21, 4,2)
+        # Xp=pd.DataFrame(Xp)
+        # print(type(Xp))
+        
         msc = MSC()
    
         Xp = msc.Calibrate(Xp)
@@ -178,7 +182,7 @@ class SpectralAnalysis:
             scoring='neg_mean_squared_error',
             n_jobs=-1
         )
-        for column in self.y_train.columns:
+        for column in self.y_train_reg.columns:
             print(f"Training SVR for {column}")
             random_search.fit(self.X_train, self.y_train_reg[column])
             best_svr = random_search.best_estimator_
@@ -206,7 +210,7 @@ class SpectralAnalysis:
         random_search = RandomizedSearchCV(
             estimator=RandomForestRegressor(),
             param_distributions=param_distributions,
-            n_iter=300,  # Adjust based on computational budget
+            n_iter=10,  # Adjust based on computational budget
             cv=self.cv,  # Number of folds in cross-validation
             verbose=1,
             random_state=self.random_state,
@@ -217,7 +221,7 @@ class SpectralAnalysis:
 
 
         # Fit Random Forest model for each target
-        for column in self.y_train.columns:
+        for column in self.y_train_reg.columns:
             print(f"Training Random Forest for {column}")
             # Conduct the random search
             random_search.fit(self.X_train, self.y_train_reg[column])
