@@ -50,7 +50,7 @@ class SpectralAnalysis:
         self.models = {}
         self.cv_results = {}
         # parameters
-        self.split_ratio = 0.2
+        self.split_ratio = 0.3
         self.random_state=42
         self.cv= 10
     
