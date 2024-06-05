@@ -7,14 +7,14 @@ Created on Sun May  5 01:55:22 2024
 
 from SPanalysis import SpectralAnalysis
 
-dataset_path=r"dataset\Hyperspectral\Combind_H_canopy.xlsx"
+dataset_path=r"dataset\FieldSpec\Combind_F_canopy.xlsx"
 
 # PLSR
-# analysis = SpectralAnalysis(dataset_path,'PLSR')
-# analysis.preprocess_data()
-# analysis.fit_model()
-# results = analysis.evaluate_model()
-# analysis.plot_results()
+analysis = SpectralAnalysis(dataset_path,'PLSR')
+analysis.preprocess_data()
+analysis.fit_model()
+results = analysis.evaluate_model()
+analysis.plot_results()
 
 # #SVM
 # analysis4 = SpectralAnalysis(dataset_path,'SVR')
@@ -32,8 +32,8 @@ dataset_path=r"dataset\Hyperspectral\Combind_H_canopy.xlsx"
 # analysis5.plot_results()
 
 # #XGboost
-XGboost= SpectralAnalysis(dataset_path,'XGBoost')
-XGboost.preprocess_data()
-XGboost.fit_model()
-XGboost.evaluate_model()
-XGboost.plot_results()
+# XGboost= SpectralAnalysis(dataset_path,'XGBoost')
+# XGboost.preprocess_data()
+# XGboost.fit_model()
+# XGboost.evaluate_model()
+# XGboost.plot_results()

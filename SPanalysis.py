@@ -21,6 +21,8 @@ from sklearn.metrics import make_scorer
 scorer = make_scorer(mean_squared_error, greater_is_better=False)
 from preprocessing import MSC, MeanCenter, Autoscale, trans2absr
 from scipy.signal import savgol_filter
+from imblearn.combine import SMOTEENN
+
 class SpectralAnalysis:
     '''
     Steps
@@ -57,7 +59,7 @@ class SpectralAnalysis:
     def preprocess_data(self):
         
         self.ground_truths = self.data.loc[:,['RWC','Emm','gsw','PhiPS2','ETR']] #ground truth
-        self.reflectance = self.data.iloc[:, 59:] #X truth
+        self.reflectance = self.data.iloc[:, 59:1000] #X truth
         self.classes=self.data.loc[:,'Treatment']
  
         
@@ -83,10 +85,16 @@ class SpectralAnalysis:
         
         
         
-        X_train, X_test, self.y_train_class,self.y_test_class,self.y_train_reg, self.y_test_reg = train_test_split(
+        X_train, X_test, y_train_class,y_test_class,y_train_reg, y_test_reg = train_test_split(
             self.reflectance, self.classes,self.ground_truths, test_size=self.split_ratio, random_state= self.random_state
         )
         
+        #upsampling and augmentation
+        
+        X_train, self.y_train_class, self.y_train_reg,self.augmented_data=self.upsample_and_augment(X_train, y_train_class, y_train_reg)
+
+        X_test, self.y_test_class, self.y_test_reg,_=self.upsample_and_augment(X_test, y_test_class, y_test_reg)
+
         Xp=trans2absr(X_train)
         # Xp=savgol_filter(Xp, 21, 4,2)
         # Xp=pd.DataFrame(Xp)
@@ -116,7 +124,47 @@ class SpectralAnalysis:
             self.y_train_reg[column] = scaler.fit_transform(self.y_train_reg[[column]])
             self.y_test_reg[column] = scaler.transform(self.y_test_reg[[column]])
             self.scalers[column] = scaler
-            
+
+    def upsample_and_augment(self, X, y_class, y_reg, offset_percent=0.06, slope_variation=0.05, num_augments=10):
+
+        df_concat= pd.concat([y_class,y_reg,X],axis=1)
+        df_columns_name=df_concat.columns
+        print(f"df_columns_name = {df_columns_name.shape}")
+        
+        df_concat['RWC_category'] = df_concat['RWC'].apply(lambda x: 0 if x > 62 else 1) # 63 is the boundary points
+        df_concat['Treatment'] = df_concat['Treatment'].apply(lambda x: 10 if x=="Well watered" else (20 if x=="Mild stress" else 30)) #changing the treatment into numeric value
+        
+        # extracting X and Y value
+        X = df_concat.iloc[:, :-1].values 
+        y = df_concat['RWC_category'].values   
+
+        # performing SMOTEENN that combines both oversampling and cleaning oversampled data
+        smoteenn = SMOTEENN(sampling_strategy='not majority', random_state=self.random_state)
+        X_resampled, y_class_resampled = smoteenn.fit_resample(X, y_class)
+        df_concat= df_concat.drop(['RWC_category'],axis=1)
+        
+        # Calculating the augmentation for the data
+        std_dev = X_resampled[:,6:].std()
+        # print(std_dev)
+        augmented_data = []
+        for _ in range(num_augments):
+            for _, row in df_concat.iterrows():
+                augmented_row = row.copy()
+                offset = np.random.uniform(-offset_percent * std_dev, offset_percent * std_dev)
+                slope = 1 + np.random.uniform(-slope_variation, slope_variation)
+                augmented_features = augmented_row.iloc[:-1].astype(float) * slope + offset
+                augmented_data .append(list(augmented_features) + [augmented_row.iloc[-1]])
+    
+        augmented_data=pd.DataFrame(augmented_data,columns=df_concat.columns) #converting list to df
+        augmented_data["Treatment"]=augmented_data["Treatment"].apply(lambda x: "Well watered" if 0<x<15 else ("Mild stress" if 18<x<23 else "Extreme stress"))
+
+        # Separating the samples
+        y_reg_augmented = augmented_data.loc[:,['RWC','Emm','gsw','PhiPS2','ETR']]
+        y_class_augmented =augmented_data.loc[:,['Treatment']]
+        X_augmented = augmented_data.iloc[:,6:]
+        
+        return X_augmented, y_class_augmented, y_reg_augmented,augmented_data
+    
     def fit_model(self):
         print("Model type:", self.model_type)
         if self.model_type == 'PLSR':
@@ -165,11 +213,11 @@ class SpectralAnalysis:
 #             'kernel': ['rbf']
 #         }
         param_distributions = {
-            'C': [0.0001,0.001,0.01,0.1,1,10,100,500,1000],  # Expanding the range of C
+            'C': [0.0001,0.001,0.01,0.1,1,10,11,12,13,14,100,200,300,500,1000,2000,4000],  # Expanding the range of C
             'gamma': [0.001, 0.01, 0.1, 1, 10, 'scale', 'auto'],  # Adding more options, including 'scale' and 'auto'
             'kernel': ["poly","rbf",'linear'],  # Exploring different kernel types
-            'epsilon': [0.01, 0.1, 0.5, 1, 2],  # Epsilon in the epsilon-SVR model
-            'degree': [2, 3, 4]  # Degree of the polynomial kernel function (if 'poly' is chosen)
+            'epsilon': [0.01, 0.1, 0.5,0.55,0.6,0.65,0.75,0.7,0.8,0.85],  # Epsilon in the epsilon-SVR model
+            'degree': [2,3, 4,5,6,7,10]  # Degree of the polynomial kernel function (if 'poly' is chosen)
         }
 
         random_search = RandomizedSearchCV(
